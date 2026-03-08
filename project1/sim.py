@@ -195,6 +195,10 @@ class PandaSim(object):
       J = np.zeros(shape=(6, 7)) # Jacobian matrix
       vq = np.zeros(shape=(7,)) # joint velocities
 
+      j_pos, _, _ = self.get_joint_states()
+      q = np.array(j_pos)
+      J = self.get_jacobian_matrix(q)
+      vq = np.linalg.pinv(J) @ vx
 
       ##########################
 

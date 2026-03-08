@@ -42,6 +42,35 @@ class JacSolver(object):
         ########## TODO ##########
         J = np.zeros(shape=(6, 7))
 
-        
+        h = 1e-6
+
+        for i in range(7):
+            q_plus = np.array(joint_values, dtype=float)
+            q_minus = np.array(joint_values, dtype=float)
+
+            q_plus[i] += h
+            q_minus[i] -= h
+
+            pos_plus, quat_plus = self.forward_kinematics(q_plus)
+            pos_minus, quat_minus = self.forward_kinematics(q_minus)
+
+            # Linear part
+            J[:3, i] = (pos_plus - pos_minus) / (2*h)
+
+            # Angular part
+            # R(R-) = (R+)， R = (R+)(R-)^T
+            quat_minus_inv = self.bullet_client.invertTransform(
+                [0, 0, 0], quat_minus.tolist()
+            )[1]
+
+            quat_rel = self.bullet_client.multiplyTransforms(
+                [0, 0, 0], quat_plus.tolist(),
+                [0, 0, 0], quat_minus_inv
+            )[1]
+
+            axis, angle = self.bullet_client.getAxisAngleFromQuaternion(quat_rel)
+
+            J[3:, i] = (np.array(axis) * angle) / (2*h)
+
         ##########################
         return J
