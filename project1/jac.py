@@ -46,31 +46,25 @@ class JacSolver(object):
 
         for i in range(7):
             q_plus = np.array(joint_values, dtype=float)
-            q_minus = np.array(joint_values, dtype=float)
+            q_orig = np.array(joint_values, dtype=float)
 
             q_plus[i] += h
-            q_minus[i] -= h
 
             pos_plus, quat_plus = self.forward_kinematics(q_plus)
-            pos_minus, quat_minus = self.forward_kinematics(q_minus)
+            pos_orig, quat_orig = self.forward_kinematics(q_orig)
 
             # Linear part
-            J[:3, i] = (pos_plus - pos_minus) / (2*h)
+            J[:3, i] = (pos_plus - pos_orig) / h
 
             # Angular part
-            # R(R-) = (R+)， R = (R+)(R-)^T
-            quat_minus_inv = self.bullet_client.invertTransform(
-                [0, 0, 0], quat_minus.tolist()
-            )[1]
+            # R R_orig = R_plus， R = R_plus R_orig^T
 
-            quat_rel = self.bullet_client.multiplyTransforms(
-                [0, 0, 0], quat_plus.tolist(),
-                [0, 0, 0], quat_minus_inv
-            )[1]
+            R_orig = np.array(p.getMatrixFromQuaternion(quat_orig)).reshape(3, 3)
+            R_plus = np.array(p.getMatrixFromQuaternion(quat_plus)).reshape(3, 3)
 
-            axis, angle = self.bullet_client.getAxisAngleFromQuaternion(quat_rel)
+            R = R_plus @ R_orig.T
 
-            J[3:, i] = (np.array(axis) * angle) / (2*h)
+            J[3:, i] = np.array([R[2, 1]/h, R[0, 2]/h, R[1, 0]/h])
 
         ##########################
         return J

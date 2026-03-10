@@ -97,7 +97,48 @@ class KinodynamicRRT(object):
         ########## TODO ##########
         solved = False
         plan = None        
+        
+        # Initialize tree with start state
+        start_state = self.pdef.get_start_state()
+        start_node = Node(start_state)
+        start_node.set_parent(None)
+        self.tree.add(start_node)
 
+        t_start = time.time()
+
+        while time.time() - t_start < time_budget:
+            # Sample a random state vector
+            rstateVec = self.state_sampler.sample()
+
+            # Find nearest node in the tree
+            nnode = self.tree.nearest(rstateVec)
+
+            # sample controls from nearest node toward sample state
+            bctrl, ostate = self.control_sampler.sample_to(nnode, rstateVec, k=1)
+
+            # If no valid propagated state was found, skip this iteration
+            if bctrl is None or ostate is None:
+                continue
+
+            # Create and add the new node
+            new_node = Node(ostate)
+            new_node.set_parent(nnode)
+            new_node.set_control(bctrl)
+            self.tree.add(new_node)
+
+            # Check goal
+            if self.pdef.get_goal().is_satisfied(ostate):
+                solved = True
+                plan = []
+
+                curr = new_node
+                while curr is not None:
+                    plan.append(curr)
+                    curr = curr.get_parent()
+                
+                plan.reverse()
+                
+                return solved, plan
 
         ##########################
 
