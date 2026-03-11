@@ -42,7 +42,7 @@ class JacSolver(object):
         ########## TODO ##########
         J = np.zeros(shape=(6, 7))
 
-        h = 1e-6
+        h = 1e-4
 
         for i in range(7):
             q_plus = np.array(joint_values, dtype=float)

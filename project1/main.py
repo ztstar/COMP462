@@ -119,7 +119,62 @@ if __name__ == "__main__":
     # Task 4: Trajectory Optimization
     elif args.task == 4:
       ########## TODO ##########
-      pass
 
-    
+      goal_inst = GraspGoal()
+      # If you want to optimize relocating instead, use: 
+      # goal_inst = RelocateGoal()
+      pdef.set_goal(goal_inst)
+
+      planner = rrt.KinodynamicRRT(pdef)
+      time_st = time.time()
+      solved, plan = planner.solve(120.0)
+      print("Running time of rrt.KinodynamicRRT.solve(): %f secs" % (time.time() - time_st))
+
+      if solved:
+        print("Initial plan found with %d nodes." % len(plan))
+
+        panda_sim.restore_state(pdef.get_start_state())
+        for _ in range(2):
+          panda_sim.step()
+        panda_sim.restore_state(pdef.get_start_state())
+
+        print("Executing initial plan...")
+        utils.execute_plan(panda_sim, plan)
+
+        init_cost = opt.compute_plan_cost(pdef, plan)
+        print("Initial plan cost: %f" % init_cost)
+
+        # Show the intial plan for 10 seconds
+        time.sleep(10)
+
+        panda_sim.bullet_client.removeAllUserDebugItems()
+
+        time_opt_st = time.time()
+        opt_plan, info = opt.optimize_plan(
+            pdef,
+            plan,
+            iterations=25,
+            num_rollouts=8,
+            sigma=np.array([0.02, 0.02, 0.15, 0.05])
+        )
+        print("Optimization time: %f secs" % (time.time() - time_opt_st))
+
+        print("Optimized plan controls: %d -> %d" % (len(plan) - 1, len(opt_plan) - 1))
+        print("Optimized cost: %f" % info["best_cost"])
+
+        panda_sim.restore_state(pdef.get_start_state())
+        for _ in range(2):
+          panda_sim.step()
+        panda_sim.restore_state(pdef.get_start_state())
+
+        print("Executing optimized plan...")
+        utils.execute_plan(panda_sim, opt_plan)
+        if isinstance(goal_inst, GraspGoal):
+          panda_sim.grasp()
+
+        while True:
+          pass
+      else:
+        print("Failed to find an initial plan for optimization.")
+
       ##########################
