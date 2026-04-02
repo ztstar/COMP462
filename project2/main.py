@@ -67,7 +67,8 @@ if __name__ == "__main__":
 
     # Task 5: Sample and Optimize a Grasp under Reachability Constraint
     elif args.task == 5:
-        traj = alg.optimize_reachable_grasp(mesh, r=1.0)
+        traj = alg.optimize_reachable_grasp(mesh, r=0.5)
         print("The quality of the given initial grasp: %f" % alg.eval_Q(mesh, traj[0]))
         print("The quality of the optimized grasp: %f" % alg.eval_Q(mesh, traj[-1]))
         utils.plot_traj(mesh, traj)
+
